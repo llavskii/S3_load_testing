@@ -1,0 +1,67 @@
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - s3_load_testing
+
+  # iperf3 server for network bandwidth testing
+  iperf3-server:
+    image: networkstatic/iperf3
+    container_name: iperf3-server
+    command: -s
+    ports:
+      - "5201:5201"
+    networks:
+      - s3_load_testing
+
+  loadgen:
+    build: ./app
+    container_name: loadgen
+    depends_on:
+      minio:
+        condition: service_healthy
+      iperf3-server:
+        condition: service_started
+    environment:
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: fio-bench
+      S3_REGION: us-east-1
+      FIO_RUNTIME: "30"
+      FIO_RAMP_TIME: "5"
+      FIO_OBJECT_SIZE: "4M"
+      FIO_PROFILE_A: profiles/profile_write.ini
+      FIO_PROFILE_B: profiles/profile_read.ini
+      FIO_NUMJOBS_A: "2"
+      FIO_NUMJOBS_B: "2"
+      IPERF3_SERVER: iperf3-server
+      IPERF3_ENABLED: "true"
+    volumes:
+      - ./out:/app/out
+    networks:
+      - s3_load_testing
+
+volumes:
+  minio_data:
+
+networks:
+  s3_load_testing:
+    name: s3_load_testing
+    driver: bridge
