@@ -102,6 +102,7 @@ IPERF3_ENABLED=true python runner.py
 ```
 
 # Custom configuration
+```bash
 export S3_ENDPOINT="http://localhost:9000"
 export IPERF3_ENABLED=true
 export FIO_RUNTIME=60
