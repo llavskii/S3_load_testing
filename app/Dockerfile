@@ -1,15 +1,15 @@
-FROM python:3.12-slim
+FROM python:3.11-alpine
 
 # Install build dependencies for fio with HTTP/S3 support and iperf3
-RUN apt-get update && apt-get install -y \
-    build-essential \
+RUN apk add --no-cache \
+    build-base \
     git \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    zlib1g-dev \
+    curl-dev \
+    openssl-dev \
+    zlib-dev \
     curl \
     iperf3 \
-    && rm -rf /var/lib/apt/lists/*
+    linux-headers
 
 # Build fio from source with HTTP engine support
 # HTTP engine is enabled automatically when libcurl is found
